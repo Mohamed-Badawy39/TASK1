@@ -1,58 +1,62 @@
 import java.util.Random;
+
 public class PriorityQueue {
-    PNode head;
-    PNode tail;
-    int length=0;
-    PriorityQueue(){
-        this.head = null;
-        this.tail = null;
+    private PNode head;
+    private int size;
 
-    }
-    public void enqueue(CriticalPatient patient){
-        PNode new_node = new PNode(patient);
-        if(head == null || patient.priority > head.patient.priority){
-            new_node.next = head;
-            head = new_node;
-            length++;
-        }
-        else{
-
-        PNode temp = head;
-        while(temp.next != null && temp.next.patient.priority >= patient.priority){
-            temp = temp.next;
-        }
-        new_node.next = temp.next;
-        temp.next = new_node;
-        length++;
-    }
+    public PriorityQueue() {
+        head = null;
+        size = 0;
     }
 
-    public CriticalPatient  dequeue(){
-        if (isEmpty()){
-            throw new IllegalArgumentException("Queue is empty");
+    // Enqueue patient at the tail (FIFO)
+    public void enqueue(CriticalPatient patient) {
+        PNode newNode = new PNode(patient);
+        if (head == null) {
+            head = newNode;
+        } else {
+            PNode current = head;
+            while (current.next != null) {
+                current = current.next;
+            }
+            current.next = newNode;
         }
-     CriticalPatient patient = head.patient; // Save reference to return
-    head = head.next; // Move head to next node
-    length--;
-    return patient;
+        size++;
     }
 
-    public int peek(){
-
-        if (isEmpty()){
-            throw new IllegalArgumentException("Queue is empty");
+    // Dequeue the patient at the head
+    public CriticalPatient dequeue() {
+        if (isEmpty()) {
+            throw new IllegalStateException("Queue is empty");
         }
-        return head.patient.patientId;
+        CriticalPatient patient = head.patient;
+        head = head.next;
+        size--;
+        return patient;
+    }
+
+    // Peek at the patient at the head without removing
+    public CriticalPatient peek() {
+        if (isEmpty()) {
+            throw new IllegalStateException("Queue is empty");
+        }
+        return head.patient;
     }
 
     public boolean isEmpty() {
         return head == null;
     }
+
+    public int size() {
+        return size;
+    }
+
+    // Static helper: Poisson random number generator
     public static double getPoissonRandom(double lambda) {
-        Random rand = new Random();
         double L = Math.exp(-lambda);
         double p = 1.0;
         int k = 0;
+        Random rand = new Random();
         do {
             k++;
             p *= rand.nextDouble();
@@ -60,38 +64,9 @@ public class PriorityQueue {
         return k - 1;
     }
 
+    // Static helper: Gaussian (normal) random number generator
     public static double getGaussianRandom(double mean, double stdDev) {
         Random rand = new Random();
         return mean + stdDev * rand.nextGaussian();
     }
-
-    public void remove_first(){
-        if (length<2){
-            head =null;
-            tail =null;
-            length = 0;
-        }
-        else{
-            head = head.next ; 
-            length--;
-        }
-
-
-
-    }
-   
-    public CriticalPatient get(int index){
-        PNode temp = head ;
-        if (index < length && index >= 0 ){
-         for (int i = 0 ; i < index ; i++){
-             temp = temp.next ;
-         }
-        }
-        return temp.patient ;
-        
-    }
-
-
-    
-
 }

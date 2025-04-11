@@ -1,97 +1,114 @@
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class HospitalQueueSimulation {
-    public static void main(String[] args) {
-        PriorityQueue queue = new PriorityQueue();
+    public static void main(String[] args) throws InterruptedException {
+        MultiPriorityQueue multiQueue = new MultiPriorityQueue();
         Random rand = new Random();
-        int numPatients = 10;
+        int numPatients = 100;
 
-        double currentArrivalTime = 480 + PriorityQueue.getPoissonRandom(5);
-        double avgServiceTime = 10; 
-        
+        double currentArrivalTime = 480;  // Starting time at 8:00 AM (in minutes)
+        double avgServiceTime = 10;
+
+        // Enqueue patients with random priority and service time
+        List<CriticalPatient> allPatients = new ArrayList<>();
         for (int i = 0; i < numPatients; i++) {
             CriticalPatient patient = new CriticalPatient(i + 1);
-            queue.enqueue(patient);
-            
-            queue.get(i).setArrivalTime(currentArrivalTime);
-            double serviceTime = PriorityQueue.getGaussianRandom(10, 2);
-            queue.get(i).setServiceTime(serviceTime);
-            queue.get(i).priority = rand.nextInt(2); // 0 = Normal, 1 = Critical
 
-            double interval = 5 + rand.nextDouble() * (avgServiceTime * 0.7);
+            patient.setArrivalTime(currentArrivalTime);
+
+            // Simulate more realistic arrival times (closer to each other)
+            double interval = 1 + rand.nextDouble() * 5;  // 1 to 5 minutes interval
             currentArrivalTime += interval;
+
+            // Randomly determine service time
+            double serviceTime = PriorityQueue.getGaussianRandom(10, 2);
+            patient.setServiceTime(serviceTime);
+
+            // Assign priority based on percentage probability
+            patient.setPriority(assignPriority(rand));
+
+            multiQueue.enqueue(patient);  // Enqueue into the correct priority queue
+            allPatients.add(patient);     // Collect all patients for later sorting
         }
 
-       
-        double currentTime = queue.get(0).getArrivalTime();
-        
-        System.out.println("Hospital Queue Simulation");
-        System.out.println("========================\n");
+        // Sort all patients by arrival time (ascending)
+        allPatients.sort(Comparator.comparingDouble(CriticalPatient::getArrivalTime));
 
-        PriorityQueue normalPatients = new PriorityQueue();
-        PriorityQueue criticalPatients = new PriorityQueue();
+        // Executor for managing threads
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
-        while (!queue.isEmpty()) {
-            CriticalPatient patient = queue.dequeue();
-            
-            if (currentTime < patient.getArrivalTime()) {
-                currentTime = patient.getArrivalTime();
-            }
+        // Create and submit tasks for each queue (Normal, Critical, Emergency)
+        executor.submit(new QueueProcessor(multiQueue, 0, allPatients)); // Normal queue (priority 0)
+        executor.submit(new QueueProcessor(multiQueue, 1, allPatients)); // Critical queue (priority 1)
+        executor.submit(new QueueProcessor(multiQueue, 2, allPatients)); // Emergency queue (priority 2)
 
-            if (patient.priority == 1) {
-                double waitTime = Math.max(0, currentTime - patient.getArrivalTime());
-                patient.setWaitingTime(waitTime);
-                criticalPatients.enqueue(patient);
-            } else {
-                double waitTime = currentTime - patient.getArrivalTime();
-                patient.setWaitingTime(Math.max(waitTime, 5));
-                normalPatients.enqueue(patient);
-            }
+        // Shut down the executor service
+        executor.shutdown();
+        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 
-            currentTime += patient.getServiceTime();
-            patient.setDepartureTime(currentTime);
-
-            System.out.println("\nPatient " + patient.patientId);
-            System.out.println("Arrival Time: " + formatTime(patient.getArrivalTime()));
-            System.out.println("Waiting Time: " + String.format("%.2f", patient.getWaitingTime()) + " minutes");
-            System.out.println("Service Time: " + String.format("%.2f", patient.getServiceTime()) + " minutes");
-            System.out.println("Departure Time: " + formatTime(patient.getDepartureTime()));
-            System.out.println("Priority: " + (patient.priority == 1 ? "Critical" : "Normal"));
-        }
-
-       
-        System.out.println("\nWaiting Time Summary");
-        System.out.println("===================");
-        printQueueStatistics("Critical Patients", criticalPatients);
-        printQueueStatistics("Normal Patients", normalPatients);
+        // After all processing is done, print the statistics at the end
+        printFinalStatistics(allPatients);
     }
 
-    private static void printQueueStatistics(String patientType, PriorityQueue queue) {
+    // Method to print final summary statistics
+    private static void printFinalStatistics(List<CriticalPatient> allPatients) {
+        // Group patients by priority for summary
+        Map<Integer, List<CriticalPatient>> groupedByPriority = new HashMap<>();
+        for (CriticalPatient p : allPatients) {
+            groupedByPriority
+                    .computeIfAbsent(p.getPriority(), k -> new ArrayList<>())
+                    .add(p);
+        }
+
+        for (int priority = 0; priority < 3; priority++) {
+            List<CriticalPatient> patients = groupedByPriority.get(priority);
+            if (patients != null && !patients.isEmpty()) {
+                printQueueStatistics(getPriorityName(priority), patients);
+            }
+        }
+    }
+
+    private static void printQueueStatistics(String label, List<CriticalPatient> patients) {
         double totalWait = 0;
-        int count = 0;
+        int count = patients.size();
         double maxWait = 0;
         double minWait = Double.MAX_VALUE;
 
-        while (!queue.isEmpty()) {
-            CriticalPatient patient = queue.dequeue();
-            double waitTime = patient.getWaitingTime();
-            totalWait += waitTime;
-            count++;
-            maxWait = Math.max(maxWait, waitTime);
-            minWait = Math.min(minWait, waitTime);
+        for (CriticalPatient p : patients) {
+            double wt = p.getWaitingTime();
+            totalWait += wt;
+            maxWait = Math.max(maxWait, wt);
+            minWait = Math.min(minWait, wt);
         }
 
         if (count > 0) {
-            System.out.printf("\n%s Statistics:", patientType);
-            System.out.printf("\nAverage Wait: %.2f minutes", totalWait / count);
-            System.out.printf("\nMinimum Wait: %.2f minutes", minWait);
-            System.out.printf("\nMaximum Wait: %.2f minutes\n", maxWait);
+            System.out.printf("\n%s Patients (%d):\n", label, count);
+            System.out.printf("Average Wait: %.2f min | Min: %.2f min | Max: %.2f min\n",
+                    totalWait / count, minWait, maxWait);
         }
     }
 
-    private static String formatTime(double minutes) {
-        int hours = (int) (minutes / 60);
-        int mins = (int) (minutes % 60);
-        return String.format("%02d:%02d", hours, mins);
+    private static String getPriorityName(int level) {
+        switch (level) {
+            case 2: return "Emergency";
+            case 1: return "Critical";
+            default: return "Normal";
+        }
+    }
+
+    // Method to assign priority based on percentage chance
+    private static int assignPriority(Random rand) {
+        int randValue = rand.nextInt(100); // Generate a random number between 0 and 99
+
+        // Assign priorities based on defined probability ranges
+        if (randValue < 50) {
+            return 0; // 70% chance for Normal
+        } else if (randValue < 80) {
+            return 1; // 20% chance for Critical
+        } else {
+            return 2; // 10% chance for Emergency
+        }
     }
 }
+

@@ -1,16 +1,18 @@
-public class CriticalPatient{
-    int patientId;
+public class CriticalPatient {
+    private int patientId;
     private double arrivalTime;
+    private double serviceTime;
     private double waitingTime;
-    private double treatmentTime;
     private double departureTime;
-    int priority; // 0 normal or 1 critical
-    
-    CriticalPatient(int patientId){
+    private int priority;
+
+    public CriticalPatient(int patientId) {
         this.patientId = patientId;
-        this.treatmentTime = 0;
-        this.departureTime = 0;
-        this.waitingTime = 0;
+    }
+
+    // Getters and Setters
+    public int getPatientId() {
+        return patientId;
     }
 
     public double getArrivalTime() {
@@ -21,20 +23,20 @@ public class CriticalPatient{
         this.arrivalTime = arrivalTime;
     }
 
-    public int getPriority() {
-        return priority;
-    }
-
-    public void setPriority(int priority) {
-        this.priority = priority;
-    }
-
     public double getServiceTime() {
-        return treatmentTime;
+        return serviceTime;
     }
 
     public void setServiceTime(double serviceTime) {
-        this.treatmentTime = serviceTime;
+        this.serviceTime = serviceTime;
+    }
+
+    public double getWaitingTime() {
+        return waitingTime;
+    }
+
+    public void setWaitingTime(double waitingTime) {
+        this.waitingTime = waitingTime;
     }
 
     public double getDepartureTime() {
@@ -45,17 +47,11 @@ public class CriticalPatient{
         this.departureTime = departureTime;
     }
 
-    public void setWaitingTime(double waitingTime) {
-        this.waitingTime = waitingTime;
+    public int getPriority() {
+        return priority;
     }
 
-    public double getWaitingTime() {
-        return waitingTime;
-    }
-
-    public void displayInfo() {
-        System.out.println("PatientID" + patientId + ", Arrival Time: " + arrivalTime +
-                ", Waiting Time: " + waitingTime +
-                ", Treatment Time: " + treatmentTime + ", Departure Time: " + departureTime);
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 }
