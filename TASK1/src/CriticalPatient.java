@@ -1,14 +1,13 @@
 public class CriticalPatient{
     int patientId;
+    private double arrivalTime;
     private double waitingTime;
     private double treatmentTime;
     private double departureTime;
     int priority; // 0 normal or 1 critical
-    private double arrivalTime;
-    CriticalPatient(int patientId, double arrivalTime,int priority){
+    
+    CriticalPatient(int patientId){
         this.patientId = patientId;
-        this.arrivalTime = arrivalTime;
-        this.priority = priority;
         this.treatmentTime = 0;
         this.departureTime = 0;
         this.waitingTime = 0;

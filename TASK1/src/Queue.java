@@ -27,8 +27,9 @@ public class Queue {
             this.head = this.tail = new_node;
         }
         else {
-            this.tail.next = new_node;
-            this.tail = new_node;
+            this.tail.next = new_node; 
+             this.tail = new_node;
+          
         }
         System.out.println(item + " added to the queue");
     }

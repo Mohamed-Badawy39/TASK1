@@ -2,7 +2,7 @@ import java.util.Random;
 public class PriorityQueue {
     PNode head;
     PNode tail;
-
+    int length=0;
     PriorityQueue(){
         this.head = null;
         this.tail = null;
@@ -13,6 +13,7 @@ public class PriorityQueue {
         if(head == null || patient.priority > head.patient.priority){
             new_node.next = head;
             head = new_node;
+            length++;
         }
         else{
 
@@ -22,6 +23,7 @@ public class PriorityQueue {
         }
         new_node.next = temp.next;
         temp.next = new_node;
+        length++;
     }
     }
 
@@ -31,10 +33,12 @@ public class PriorityQueue {
         }
      CriticalPatient patient = head.patient; // Save reference to return
     head = head.next; // Move head to next node
+    length--;
     return patient;
     }
 
     public int peek(){
+
         if (isEmpty()){
             throw new IllegalArgumentException("Queue is empty");
         }
@@ -61,8 +65,33 @@ public class PriorityQueue {
         return mean + stdDev * rand.nextGaussian();
     }
 
-//    public void displayInfo() {
-//        System.out.println("Patient ID: " + this.patientid + ", Arrival Time: " + this.arrivalTime + " minutes");
-//    }
+    public void remove_first(){
+        if (length<2){
+            head =null;
+            tail =null;
+            length = 0;
+        }
+        else{
+            head = head.next ; 
+            length--;
+        }
+
+
+
+    }
+   
+    public CriticalPatient get(int index){
+        PNode temp = head ;
+        if (index < length && index >= 0 ){
+         for (int i = 0 ; i < index ; i++){
+             temp = temp.next ;
+         }
+        }
+        return temp.patient ;
+        
+    }
+
+
+    
 
 }

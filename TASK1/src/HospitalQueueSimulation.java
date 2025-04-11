@@ -2,63 +2,96 @@ import java.util.Random;
 
 public class HospitalQueueSimulation {
     public static void main(String[] args) {
-        /*        Random rand = new Random();
-        for (int i = 1; i <= 5; i++) {
-            double arrivalTime = Queue.getPoissonRandom(5);
+        PriorityQueue queue = new PriorityQueue();
+        Random rand = new Random();
+        int numPatients = 10;
 
-                normal np = new normal(i, arrivalTime);
-                np.displayInfo();
+        double currentArrivalTime = 480 + PriorityQueue.getPoissonRandom(5);
+        double avgServiceTime = 10; 
+        
+        for (int i = 0; i < numPatients; i++) {
+            CriticalPatient patient = new CriticalPatient(i + 1);
+            queue.enqueue(patient);
+            
+            queue.get(i).setArrivalTime(currentArrivalTime);
+            double serviceTime = PriorityQueue.getGaussianRandom(10, 2);
+            queue.get(i).setServiceTime(serviceTime);
+            queue.get(i).priority = rand.nextInt(2); // 0 = Normal, 1 = Critical
 
+            double interval = 5 + rand.nextDouble() * (avgServiceTime * 0.7);
+            currentArrivalTime += interval;
         }
- */
 
-PriorityQueue queue = new PriorityQueue();
-int numPatients = 10;
-Random rand = new Random();
+       
+        double currentTime = queue.get(0).getArrivalTime();
+        
+        System.out.println("Hospital Queue Simulation");
+        System.out.println("========================\n");
 
-double[] arrivalTimes = new double[numPatients];
-double[] waitingTimes = new double[numPatients];
-double[] serviceTimes = new double[numPatients];
-double[] departureTimes = new double[numPatients];
-for (int i = 0; i < numPatients; i++) {
-    double arrivalTime = PriorityQueue.getPoissonRandom(5);
-    double serviceTime = PriorityQueue.getGaussianRandom(10, 2);
-    int priority = rand.nextInt(2); // 0 = Normal, 1 = Critical
+        PriorityQueue normalPatients = new PriorityQueue();
+        PriorityQueue criticalPatients = new PriorityQueue();
 
-    CriticalPatient patient = new CriticalPatient(i + 1, arrivalTime, priority);
-    patient.setServiceTime(serviceTime) ;
-    queue.enqueue(patient);
-        }
-        double currentTime = 0;
-        int index = 0;
         while (!queue.isEmpty()) {
             CriticalPatient patient = queue.dequeue();
+            
             if (currentTime < patient.getArrivalTime()) {
                 currentTime = patient.getArrivalTime();
             }
 
-            patient.setWaitingTime(currentTime - patient.getArrivalTime());  // Calculate waiting time
+            if (patient.priority == 1) {
+                double waitTime = Math.max(0, currentTime - patient.getArrivalTime());
+                patient.setWaitingTime(waitTime);
+                criticalPatients.enqueue(patient);
+            } else {
+                double waitTime = currentTime - patient.getArrivalTime();
+                patient.setWaitingTime(Math.max(waitTime, 5));
+                normalPatients.enqueue(patient);
+            }
 
-            currentTime += patient.getServiceTime();   // Update current time with service time
-            patient.setDepartureTime(currentTime ); // Calculate departure time
+            currentTime += patient.getServiceTime();
+            patient.setDepartureTime(currentTime);
 
-            // Store data in arrays
-            arrivalTimes[index] = patient.getArrivalTime();
-            waitingTimes[index] = patient.getWaitingTime();
-            serviceTimes[index] = patient.getServiceTime();
-            departureTimes[index] = patient.getDepartureTime();
-            index++;
-
-          
-
-            patient.displayInfo();
-        }
-        System.out.println("\nSummary:");
-        System.out.printf("%-10s %-15s %-15s %-15s %-15s\n", "PatientID", "Arrival Time", "Waiting Time", "Service Time", "Departure Time");
-        for (int i = 0; i < numPatients; i++) {
-            System.out.printf("%-10d %-15.2f %-15.2f %-15.2f %-15.2f\n",
-                    i + 1, arrivalTimes[i], waitingTimes[i], serviceTimes[i], departureTimes[i]);
+            System.out.println("\nPatient " + patient.patientId);
+            System.out.println("Arrival Time: " + formatTime(patient.getArrivalTime()));
+            System.out.println("Waiting Time: " + String.format("%.2f", patient.getWaitingTime()) + " minutes");
+            System.out.println("Service Time: " + String.format("%.2f", patient.getServiceTime()) + " minutes");
+            System.out.println("Departure Time: " + formatTime(patient.getDepartureTime()));
+            System.out.println("Priority: " + (patient.priority == 1 ? "Critical" : "Normal"));
         }
 
+       
+        System.out.println("\nWaiting Time Summary");
+        System.out.println("===================");
+        printQueueStatistics("Critical Patients", criticalPatients);
+        printQueueStatistics("Normal Patients", normalPatients);
+    }
+
+    private static void printQueueStatistics(String patientType, PriorityQueue queue) {
+        double totalWait = 0;
+        int count = 0;
+        double maxWait = 0;
+        double minWait = Double.MAX_VALUE;
+
+        while (!queue.isEmpty()) {
+            CriticalPatient patient = queue.dequeue();
+            double waitTime = patient.getWaitingTime();
+            totalWait += waitTime;
+            count++;
+            maxWait = Math.max(maxWait, waitTime);
+            minWait = Math.min(minWait, waitTime);
+        }
+
+        if (count > 0) {
+            System.out.printf("\n%s Statistics:", patientType);
+            System.out.printf("\nAverage Wait: %.2f minutes", totalWait / count);
+            System.out.printf("\nMinimum Wait: %.2f minutes", minWait);
+            System.out.printf("\nMaximum Wait: %.2f minutes\n", maxWait);
+        }
+    }
+
+    private static String formatTime(double minutes) {
+        int hours = (int) (minutes / 60);
+        int mins = (int) (minutes % 60);
+        return String.format("%02d:%02d", hours, mins);
     }
 }
