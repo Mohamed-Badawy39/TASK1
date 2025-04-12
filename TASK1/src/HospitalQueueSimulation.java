@@ -2,15 +2,19 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class HospitalQueueSimulation {
+    private static final int QUEUE_THRESHOLD = 25; // Threshold to open a new caretaker
+
     public static void main(String[] args) throws InterruptedException {
-        MultiPriorityQueue multiQueue = new MultiPriorityQueue();
         Random rand = new Random();
         int numPatients = 100;
-
         double currentArrivalTime = 480;  // Starting time at 8:00 AM (in minutes)
-        double avgServiceTime = 10;
 
-        // Enqueue patients with random priority and service time
+        // Create a list of adaptive queues (these will be opened dynamically)
+        List<AdaptiveQueue> caretakerQueues = new ArrayList<>();
+        // Start with one initial queue
+        caretakerQueues.add(new AdaptiveQueue(1));
+
+        // Create all patients first
         List<CriticalPatient> allPatients = new ArrayList<>();
         for (int i = 0; i < numPatients; i++) {
             CriticalPatient patient = new CriticalPatient(i + 1);
@@ -22,33 +26,88 @@ public class HospitalQueueSimulation {
             currentArrivalTime += interval;
 
             // Randomly determine service time
-            double serviceTime = PriorityQueue.getGaussianRandom(10, 2);
+            double serviceTime = getGaussianRandom(10, 2);
             patient.setServiceTime(serviceTime);
 
             // Assign priority based on percentage probability
             patient.setPriority(assignPriority(rand));
 
-            multiQueue.enqueue(patient);  // Enqueue into the correct priority queue
-            allPatients.add(patient);     // Collect all patients for later sorting
+            allPatients.add(patient);
         }
 
         // Sort all patients by arrival time (ascending)
         allPatients.sort(Comparator.comparingDouble(CriticalPatient::getArrivalTime));
 
-        // Executor for managing threads
-        ExecutorService executor = Executors.newFixedThreadPool(3);
+        // Assign each patient to a queue based on threshold logic
+        for (CriticalPatient patient : allPatients) {
+            // Find the shortest queue or open a new one if all are at threshold
+            AdaptiveQueue targetQueue = findBestQueue(caretakerQueues);
+            targetQueue.enqueue(patient);
 
-        // Create and submit tasks for each queue (Normal, Critical, Emergency)
-        executor.submit(new QueueProcessor(multiQueue, 0, allPatients)); // Normal queue (priority 0)
-        executor.submit(new QueueProcessor(multiQueue, 1, allPatients)); // Critical queue (priority 1)
-        executor.submit(new QueueProcessor(multiQueue, 2, allPatients)); // Emergency queue (priority 2)
+            // If all queues are at or above threshold, open a new queue
+            boolean allQueuesAtThreshold = true;
+            for (AdaptiveQueue queue : caretakerQueues) {
+                if (queue.size() < QUEUE_THRESHOLD) {
+                    allQueuesAtThreshold = false;
+                    break;
+                }
+            }
+
+            if (allQueuesAtThreshold) {
+                caretakerQueues.add(new AdaptiveQueue(caretakerQueues.size() + 1));
+            }
+        }
+
+        // Process all queues
+        ExecutorService executor = Executors.newFixedThreadPool(caretakerQueues.size());
+        for (AdaptiveQueue queue : caretakerQueues) {
+            executor.submit(new CaretakerProcessor(queue));
+        }
 
         // Shut down the executor service
         executor.shutdown();
         executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 
-        // After all processing is done, print the statistics at the end
+        // After all processing is done, print the statistics
+        System.out.println("\n======= SIMULATION SUMMARY =======");
+        System.out.println("Total caretakers opened: " + caretakerQueues.size());
+
+        // Print statistics by priority across all queues
         printFinalStatistics(allPatients);
+    }
+
+    // Find the best queue to add a patient to (either shortest queue or one with fewest critical patients)
+    private static AdaptiveQueue findBestQueue(List<AdaptiveQueue> queues) {
+        if (queues.isEmpty()) {
+            throw new IllegalStateException("No queues available");
+        }
+
+        // If any queue is below threshold, find the shortest one
+        AdaptiveQueue shortestQueue = null;
+        int minSize = Integer.MAX_VALUE;
+
+        for (AdaptiveQueue queue : queues) {
+            if (queue.size() < QUEUE_THRESHOLD && queue.size() < minSize) {
+                shortestQueue = queue;
+                minSize = queue.size();
+            }
+        }
+
+        // If we found a queue below threshold, return it
+        if (shortestQueue != null) {
+            return shortestQueue;
+        }
+
+        // If all queues are at threshold, return the one with the least patients
+        minSize = Integer.MAX_VALUE;
+        for (AdaptiveQueue queue : queues) {
+            if (queue.size() < minSize) {
+                shortestQueue = queue;
+                minSize = queue.size();
+            }
+        }
+
+        return shortestQueue;
     }
 
     // Method to print final summary statistics
@@ -61,7 +120,7 @@ public class HospitalQueueSimulation {
                     .add(p);
         }
 
-        for (int priority = 0; priority < 3; priority++) {
+        for (int priority = 0; priority < 2; priority++) {
             List<CriticalPatient> patients = groupedByPriority.get(priority);
             if (patients != null && !patients.isEmpty()) {
                 printQueueStatistics(getPriorityName(priority), patients);
@@ -91,24 +150,25 @@ public class HospitalQueueSimulation {
 
     private static String getPriorityName(int level) {
         switch (level) {
-            case 2: return "Emergency";
             case 1: return "Critical";
             default: return "Normal";
         }
     }
 
-    // Method to assign priority based on percentage chance
+    // Method to assign priority based on percentage chance (now only Normal and Critical)
     private static int assignPriority(Random rand) {
         int randValue = rand.nextInt(100); // Generate a random number between 0 and 99
 
-        // Assign priorities based on defined probability ranges
-        if (randValue < 50) {
+        if (randValue < 70) {
             return 0; // 70% chance for Normal
-        } else if (randValue < 80) {
-            return 1; // 20% chance for Critical
         } else {
-            return 2; // 10% chance for Emergency
+            return 1; // 30% chance for Critical
         }
     }
-}
 
+    // Gaussian (normal) random number generator (moved from PriorityQueue)
+    public static double getGaussianRandom(double mean, double stdDev) {
+        Random rand = new Random();
+        return mean + stdDev * rand.nextGaussian();
+    }
+}
