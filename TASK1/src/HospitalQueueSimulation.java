@@ -40,22 +40,23 @@ public class HospitalQueueSimulation {
 
         // Assign each patient to a queue based on threshold logic
         for (CriticalPatient patient : allPatients) {
-            // Find the shortest queue or open a new one if all are at threshold
-            AdaptiveQueue targetQueue = findBestQueue(caretakerQueues);
-            targetQueue.enqueue(patient);
-
-            // If all queues are at or above threshold, open a new queue
-            boolean allQueuesAtThreshold = true;
+            // Check if we need to open a new queue before assigning
+            boolean needNewQueue = true;
             for (AdaptiveQueue queue : caretakerQueues) {
                 if (queue.size() < QUEUE_THRESHOLD) {
-                    allQueuesAtThreshold = false;
+                    needNewQueue = false;
                     break;
                 }
             }
 
-            if (allQueuesAtThreshold) {
+            // Only open a new queue if all existing queues are at threshold
+            if (needNewQueue) {
                 caretakerQueues.add(new AdaptiveQueue(caretakerQueues.size() + 1));
             }
+
+            // Find the best queue to assign this patient to
+            AdaptiveQueue targetQueue = findBestQueue(caretakerQueues);
+            targetQueue.enqueue(patient);
         }
 
         // Process all queues
@@ -76,30 +77,16 @@ public class HospitalQueueSimulation {
         printFinalStatistics(allPatients);
     }
 
-    // Find the best queue to add a patient to (either shortest queue or one with fewest critical patients)
+    // Find the best queue to add a patient to (shortest queue)
     private static AdaptiveQueue findBestQueue(List<AdaptiveQueue> queues) {
         if (queues.isEmpty()) {
             throw new IllegalStateException("No queues available");
         }
 
-        // If any queue is below threshold, find the shortest one
-        AdaptiveQueue shortestQueue = null;
-        int minSize = Integer.MAX_VALUE;
+        // Find the queue with the fewest patients
+        AdaptiveQueue shortestQueue = queues.get(0);
+        int minSize = shortestQueue.size();
 
-        for (AdaptiveQueue queue : queues) {
-            if (queue.size() < QUEUE_THRESHOLD && queue.size() < minSize) {
-                shortestQueue = queue;
-                minSize = queue.size();
-            }
-        }
-
-        // If we found a queue below threshold, return it
-        if (shortestQueue != null) {
-            return shortestQueue;
-        }
-
-        // If all queues are at threshold, return the one with the least patients
-        minSize = Integer.MAX_VALUE;
         for (AdaptiveQueue queue : queues) {
             if (queue.size() < minSize) {
                 shortestQueue = queue;
