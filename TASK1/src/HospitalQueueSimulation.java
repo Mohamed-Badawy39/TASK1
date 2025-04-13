@@ -3,7 +3,7 @@ import java.util.concurrent.*;
 
 public class HospitalQueueSimulation {
     private static final int QUEUE_THRESHOLD = 25;
-    private static final int NORMAL_THRESHOLD = 70;
+    private static final int NORMAL_THRESHOLD = 80;
     private static final int CRITICAL_THRESHOLD = 95;
 
     public static void main(String[] args) throws InterruptedException {
