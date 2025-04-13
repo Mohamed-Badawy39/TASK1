@@ -3,6 +3,7 @@ import java.util.List;
 
 public class CaretakerProcessor implements Runnable {
     private final AdaptiveQueue queue;
+    private final List<String> logMessages = new ArrayList<>();
 
     public CaretakerProcessor(AdaptiveQueue queue) {
         this.queue = queue;
@@ -10,26 +11,18 @@ public class CaretakerProcessor implements Runnable {
 
     @Override
     public void run() {
-        double currentTime = 480; // Start time (8:00 AM in minutes)
-        System.out.println("Starting Caretaker #" + queue.getQueueId());
-
-        // Process each patient in the queue
+        double currentTime = 480;
+        logMessages.add("Starting Caretaker #" + queue.getQueueId());
         while (!queue.isEmpty()) {
             CriticalPatient patient = queue.dequeue();
-
-            // Wait for the patient to arrive if necessary
             if (currentTime < patient.getArrivalTime()) {
                 currentTime = patient.getArrivalTime();
             }
-
-            // Calculate waiting time and update departure time
             double waitTime = Math.max(0, currentTime - patient.getArrivalTime());
             patient.setWaitingTime(waitTime);
             currentTime += patient.getServiceTime();
             patient.setDepartureTime(currentTime);
-
-            // Print patient details
-            System.out.println("Caretaker #" + queue.getQueueId() +
+            logMessages.add("Caretaker #" + queue.getQueueId() +
                     " | Patient " + patient.getPatientId() +
                     " | Priority: " + getPriorityName(patient.getPriority()) +
                     " | Arrival: " + formatTime(patient.getArrivalTime()) +
@@ -37,8 +30,7 @@ public class CaretakerProcessor implements Runnable {
                     " | Service: " + String.format("%.2f", patient.getServiceTime()) + " min" +
                     " | Departure: " + formatTime(patient.getDepartureTime()));
         }
-
-        System.out.println("Caretaker #" + queue.getQueueId() + " finished processing all patients.");
+        logMessages.add("Caretaker #" + queue.getQueueId() + " finished processing all patients.");
     }
 
     private static String formatTime(double minutes) {
@@ -54,5 +46,13 @@ public class CaretakerProcessor implements Runnable {
             default:
                 return "Normal";
         }
+    }
+
+    public List<String> getLogs() {
+        return logMessages;
+    }
+
+    public int getQueueId() {
+        return queue.getQueueId();
     }
 }

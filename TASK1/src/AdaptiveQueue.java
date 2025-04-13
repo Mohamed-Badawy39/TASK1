@@ -23,7 +23,7 @@ public class AdaptiveQueue {
             }
         }
 
-        // If no critical patients, dequeue normal ones
+
         return patients.poll();
     }
 
@@ -39,7 +39,7 @@ public class AdaptiveQueue {
         return queueId;
     }
 
-    // Check if there are any critical patients in the queue
+
     public boolean hasCriticalPatients() {
         for (CriticalPatient patient : patients) {
             if (patient.getPriority() == 1) {

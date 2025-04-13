@@ -4,8 +4,9 @@ public class CriticalPatient {
     private double serviceTime;
     private double waitingTime;
     private double departureTime;
-    private int priority; // 0 = Normal, 1 = Critical (simplified from original)
-    private int assignedQueueId; // To track which queue this patient was assigned to
+    private int priority;
+    private int assignedQueueId;
+
 
     public CriticalPatient(int patientId) {
         this.patientId = patientId;
