@@ -51,22 +51,4 @@ public class PriorityQueue {
         return size;
     }
 
-    // Static helper: Poisson random number generator
-    public static double getPoissonRandom(double lambda) {
-        double L = Math.exp(-lambda);
-        double p = 1.0;
-        int k = 0;
-        Random rand = new Random();
-        do {
-            k++;
-            p *= rand.nextDouble();
-        } while (p > L);
-        return k - 1;
-    }
-
-    // Static helper: Gaussian (normal) random number generator
-    public static double getGaussianRandom(double mean, double stdDev) {
-        Random rand = new Random();
-        return mean + stdDev * rand.nextGaussian();
-    }
 }

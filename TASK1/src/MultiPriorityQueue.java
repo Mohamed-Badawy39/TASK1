@@ -1,54 +1,66 @@
+// This class manages multiple hospital queues for patients based on their urgency
 public class MultiPriorityQueue {
-    private final PriorityQueue[] queues;
+    // Array of queues for different priority levels: 0 = Normal, 1 = Critical, 2 = Emergency
+    private final PriorityQueue[] patientQueues;
 
+    // Constructor to set up the three priority queues
     public MultiPriorityQueue() {
-        queues = new PriorityQueue[3]; // Three priority levels: 0 = Normal, 1 = Critical, 2 = Emergency
+        patientQueues = new PriorityQueue[3]; // One queue for each priority level
         for (int i = 0; i < 3; i++) {
-            queues[i] = new PriorityQueue();
+            patientQueues[i] = new PriorityQueue(); // Initialize each queue
         }
     }
 
-    // Enqueue the patient based on priority (no dependency on other queues)
+    // Add a patient to the right queue based on their priority
     public synchronized void enqueue(CriticalPatient patient) {
-        queues[patient.getPriority()].enqueue(patient);
+        // Put the patient in the queue matching their priority (0, 1, or 2)
+        patientQueues[patient.getPriority()].enqueue(patient);
     }
 
-    // Dequeue the next patient from a specific priority queue
+    // Get the next patient from a specific priority queue
     public synchronized CriticalPatient dequeueFromQueue(int priority) {
-        if (!queues[priority].isEmpty()) {
-            return queues[priority].dequeue();
+        // Check if the chosen queue has patients
+        if (!patientQueues[priority].isEmpty()) {
+            // Return the next patient from that queue
+            return patientQueues[priority].dequeue();
         }
-        return null; // Return null if the queue is empty
+        // If the queue is empty, return null
+        return null;
     }
 
-    // Dequeue the next patient from the queue with the earliest arrival time (highest priority)
+    // Get the next patient, starting with the highest priority queue
     public synchronized CriticalPatient dequeue() {
-        // Dequeue from the highest priority queue (Emergency > Critical > Normal)
+        // Check queues from highest to lowest priority: Emergency (2), Critical (1), Normal (0)
         for (int i = 2; i >= 0; i--) {
-            if (!queues[i].isEmpty()) {
-                return queues[i].dequeue();
+            if (!patientQueues[i].isEmpty()) {
+                // Return the next patient from the first non-empty queue
+                return patientQueues[i].dequeue();
             }
         }
-        return null; // All queues are empty
+        // If all queues are empty, return null
+        return null;
     }
 
-    // Check if all queues are empty
+    // Check if all priority queues are empty
     public synchronized boolean isEmpty() {
-        for (PriorityQueue queue : queues) {
+        // Look at each queue
+        for (PriorityQueue queue : patientQueues) {
+            // If any queue has patients, return false
             if (!queue.isEmpty()) {
                 return false;
             }
         }
+        // All queues are empty
         return true;
     }
 
-    // Return the queue for a specific priority level
+    // Get the queue for a specific priority level
     public PriorityQueue getQueue(int priority) {
-        return queues[priority];
+        return patientQueues[priority];
     }
 
-    // Get the size of the queue for a specific priority level
+    // Get the number of patients in a specific priority queue
     public int getQueueSize(int priority) {
-        return queues[priority].size();
+        return patientQueues[priority].size();
     }
 }

@@ -1,47 +1,55 @@
 import java.util.LinkedList;
 import java.util.Queue;
 
+// This class manages a queue of patients in a hospital, prioritizing critical cases
 public class AdaptiveQueue {
-    private final Queue<CriticalPatient> patients;
+    // A list to hold patients waiting for treatment
+    private final Queue<CriticalPatient> patientQueue;
+    // A unique ID to identify this queue
     private final int queueId;
 
+    // Constructor to set up a new queue with a given ID
     public AdaptiveQueue(int queueId) {
         this.queueId = queueId;
-        this.patients = new LinkedList<>();
+        this.patientQueue = new LinkedList<>();
     }
 
+    // Add a patient to the end of the queue
     public void enqueue(CriticalPatient patient) {
-        patients.add(patient);
+        patientQueue.add(patient);
     }
 
+    // Remove and return the next patient, giving priority to critical cases
     public CriticalPatient dequeue() {
-        // First try to dequeue critical patients
-        for (CriticalPatient patient : patients) {
-            if (patient.getPriority() == 1) { // Critical
-                patients.remove(patient);
+        // Check for critical patients first (priority level 1)
+        for (CriticalPatient patient : patientQueue) {
+            if (patient.getPriority() == 1) { // 1 means critical
+                patientQueue.remove(patient);
                 return patient;
             }
         }
-
-
-        return patients.poll();
+        // If no critical patients, return the next patient in line
+        return patientQueue.poll();
     }
 
+    // Check if the queue has no patients
     public boolean isEmpty() {
-        return patients.isEmpty();
+        return patientQueue.isEmpty();
     }
 
+    // Return the number of patients in the queue
     public int size() {
-        return patients.size();
+        return patientQueue.size();
     }
 
+    // Get the ID of this queue
     public int getQueueId() {
         return queueId;
     }
 
-
+    // Check if there are any critical patients in the queue
     public boolean hasCriticalPatients() {
-        for (CriticalPatient patient : patients) {
+        for (CriticalPatient patient : patientQueue) {
             if (patient.getPriority() == 1) {
                 return true;
             }
@@ -49,14 +57,14 @@ public class AdaptiveQueue {
         return false;
     }
 
-    // Count critical patients in the queue
+    // Count how many critical patients are in the queue
     public int countCriticalPatients() {
-        int count = 0;
-        for (CriticalPatient patient : patients) {
+        int criticalCount = 0;
+        for (CriticalPatient patient : patientQueue) {
             if (patient.getPriority() == 1) {
-                count++;
+                criticalCount++;
             }
         }
-        return count;
+        return criticalCount;
     }
 }
